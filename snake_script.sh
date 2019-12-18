@@ -61,27 +61,6 @@ throw_food() {
     eval board$food_row_pos[$food_col_pos]=$food_sign
 }
 
-init_game() {
-    clear
-    printf "\e[?25l"
-    stty -echo
-    draw_caterpilar
-    throw_food
-    draw_board
-    
-}
-is_dead() {
-    if [ $1 == -1 ] || [ $1 == $board_height ] || 
-       [ $2 == -1 ] || [ $2 == $board_width ]; then
-        return 0
-    fi
-    eval "pos=\${board$1[$2]}"
-    if [ $pos == $body_sign ]; then
-        return 0
-    fi
-    return 1
-}
-
 get_food() {
     body_length+=1
     eval "board$new_row_pos[$new_col_pos]=\"$body_sign\""
@@ -105,10 +84,16 @@ move_body() {
 move_caterpillar() {
     new_row_pos=$((head_row_pos + move_by_row[move_dir]))
     new_col_pos=$((head_col_pos + move_by_col[move_dir]))
-    if is_dead $new_row_pos $new_col_pos; then
+    if [ $new_row_pos == -1 ] || [ $new_row_pos == $board_height ] || 
+       [ $new_col_pos == -1 ] || [ $new_col_pos == $board_width ]; then
         return 1
+    fi
     eval "pos=\${board$new_row_pos[$new_col_pos]}"
-    elif [ $pos == $food_sign ]; then
+    if [ $pos == $body_sign ]; then
+        return 1
+    fi
+    eval "pos=\${board$new_row_pos[$new_col_pos]}"
+    if [ $pos == $food_sign ]; then
         get_food
     else
         move_body
@@ -118,7 +103,7 @@ move_caterpillar() {
 
 get_key() {
     while true; do
-      read -sN1 key
+      read -sn1 key
       case $key in 
         [qQ])
           kill -SIGQUIT $!; break;;
@@ -156,7 +141,12 @@ game_loop() {
 }
 
 main() {
-    init_game
+    clear
+    printf "\e[?25l"
+    stty -echo
+    draw_caterpilar
+    throw_food
+    draw_board
     game_loop &
     get_key
     printf "\e[?25h"
